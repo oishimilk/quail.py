@@ -2,16 +2,16 @@
 Blender で MMD モデルを作るお手伝いをします。
 Copyright (C) 2017-2022 Quail (oishimilk). Some rights reserved.
 
-Compatible with Blender 2.79 and mmd_tools v0.6.0
+Compatible with Blender 3.2.2 and mmd_tools v2.4.0
 """
 import bpy
 import mmd_tools
 
 # バージョン
-VERSION = (0, 1, 3)
+VERSION = (0, 2, 0)
 
 
-def selectArmature():
+def _select_armature():
 	"""
 	現在の Blender シーン中で最初に見つかった Armature 名を返します。
 
@@ -23,7 +23,7 @@ def selectArmature():
 			return obj.name
 
 
-def setJapaneseBoneNames():
+def set_japanese_bone_names():
 	"""
 	MMD用日本語ボーン名を割り当てます。
 
@@ -33,7 +33,7 @@ def setJapaneseBoneNames():
 	# 以下のボーンは処理されません。
 	excluded = ("上半身2補助.L", "上半身2補助.R", "腰キャンセル.L", "腰キャンセル.R", "下半身補助.L", "下半身補助.R")
 
-	for bone in bpy.data.objects[selectArmature()].pose.bones:
+	for bone in bpy.data.objects[_select_armature()].pose.bones:
 		if bone.is_mmd_shadow_bone:
 			continue
 
@@ -51,15 +51,15 @@ def setJapaneseBoneNames():
 		print("%s を設定しました。" % bone.name)
 
 
-def setEnglishBoneNames(overwrite=False):
+def set_english_bone_names(overwrite=False):
 	"""
 	MMD用英語ボーン名を割り当てます。
-	先に setJapaneseBoneNames() を実行してください。
+	先に set_japanese_bone_names() を実行してください。
 
 	@param overwrite: (bool) [任意] 設定済みの名前を上書きするかどうか
 	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	for bone in bpy.data.objects[selectArmature()].pose.bones:
+	for bone in bpy.data.objects[_select_armature()].pose.bones:
 		if bone.is_mmd_shadow_bone:
 			continue
 
@@ -75,26 +75,26 @@ def setEnglishBoneNames(overwrite=False):
 				print("%sの英名として%sを登録しました。" % (bone.name, EnglishName))
 
 
-def showBoneIdentifier():
+def show_bone_identifier():
 	"""
 	IDが割り当てられているボーンを表示します。
 
 	@param なし: (なし) [なし] この関数に引数はありません。
 	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	for bone in bpy.data.objects[selectArmature()].pose.bones:
+	for bone in bpy.data.objects[_select_armature()].pose.bones:
 		if bone.mmd_bone.bone_id != -1:
 			print("ID: %d 名前: %s" % (bone.mmd_bone.bone_id, bone.name))
 
 
-def checkInvalidBoneName():
+def check_invalid_bone_name():
 	"""
 	無効な名前をもつボーンがないか確認します。
 
 	@param なし: (なし) [なし] この関数に引数はありません。
 	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	for bone in bpy.data.objects[selectArmature()].pose.bones:
+	for bone in bpy.data.objects[_select_armature()].pose.bones:
 		if bone.is_mmd_shadow_bone:
 			continue
 
@@ -116,14 +116,14 @@ def checkInvalidBoneName():
 				print("Blender用(%s)とMMD用(%s)で名称が異なっています!" % (bone.name, bone.mmd_bone.name_j))
 
 
-def checkBonePanel(model_name=bpy.context.scene.name):
+def check_bone_panel(model_name=bpy.context.scene.name):
 	"""
 	表示パネルに登録されていないボーンをあぶり出します。
 
 	@param model_name: (str) [任意] MMDモデルに属するオブジェクトの名前
 	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	bones = bpy.data.objects[selectArmature()].pose.bones
+	bones = bpy.data.objects[_select_armature()].pose.bones
 
 	for frame in bpy.data.objects[model_name].mmd_root.display_item_frames:
 		for item in frame.items:
@@ -133,7 +133,7 @@ def checkBonePanel(model_name=bpy.context.scene.name):
 	print("現在選択されていないボーンは表示パネルに未登録です。")
 
 
-def setMorphPanel(model_name=bpy.context.scene.name):
+def set_morph_panel(model_name=bpy.context.scene.name):
 	"""
 	表示パネルにモーフを設定します。
 
@@ -165,7 +165,7 @@ def setMorphPanel(model_name=bpy.context.scene.name):
 			print("%s を登録しました。" % shape.name)
 
 
-def setEnglishMorphNames(target=bpy.context.scene.name, csv_file="//../CommonMorphList.csv", overwrite=True):
+def set_english_morph_names(target=bpy.context.scene.name, csv_file="//../CommonMorphList.csv", overwrite=True):
 	"""
 	英語のモーフ名を設定します。
 
@@ -190,7 +190,7 @@ def setEnglishMorphNames(target=bpy.context.scene.name, csv_file="//../CommonMor
 				print("%s: このモデルにそのようなモーフはありません。" % morph[0])
 
 
-def setEnglishRigidNames(overwrite=False):
+def set_english_rigid_names(overwrite=False):
 	"""
 	英語の剛体名を設定します。
 
@@ -212,7 +212,7 @@ def setEnglishRigidNames(overwrite=False):
 			continue
 
 
-def setEnglishJointNames(overwrite=False):
+def set_english_joint_names(overwrite=False):
 	"""
 	関節の剛体名を設定します。
 
@@ -236,7 +236,7 @@ def setEnglishJointNames(overwrite=False):
 			continue
 
 
-def checkPhysicsDuplicationInMMD():
+def check_physics_duplication_in_mmd():
 	"""
 	剛体・関節が重複していないか確認します。
 
@@ -262,14 +262,14 @@ def checkPhysicsDuplicationInMMD():
 				print("%sの名称が重複しています! %s" % (lst, name1))
 
 
-def processTipBonesForMMD():
+def process_tip_bones_for_mmd():
 	"""
 	先ボーンを設定します。
 
 	@param なし: (なし) [なし] この関数に引数はありません。
 	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	Arm = bpy.data.objects[selectArmature()]
+	Arm = bpy.data.objects[_select_armature()]
 
 	for bone in Arm.pose.bones:
 		if bone.mmd_bone.name_j.endswith("先"):
@@ -278,70 +278,7 @@ def processTipBonesForMMD():
 			print("%sを先ボーンに設定しました。" % bone.name)
 
 
-def toggleNode(spec):
-	"""
-	マテリアルノードを使用するか否かを設定します。
-	レンダリングエンジンを設定してから呼び出してください。
-
-	@param spec: (bool) [任意] マテリアルノードを使用するか否か
-	@return なし: (なし) この関数に戻り値はありません。
-	"""
-	BOOL = bpy.context.scene.render.engine == "CYCLES"
-
-	bpy.context.scene.render.use_stamp_memory = BOOL
-
-	if BOOL:
-		bpy.context.scene.render.stamp_note_text = bpy.context.scene.render.stamp_note_text.replace("Blender Internal Render", "Cycles Render")
-	else:
-		bpy.context.scene.render.stamp_note_text = bpy.context.scene.render.stamp_note_text.replace("Cycles Render", "Blender Internal Render")
-
-	for material in bpy.data.materials:
-		if "mmd_tools_rigid_" in material.name:
-			continue
-		material.use_nodes = spec
-		print("%s のマテリアルノードの使用を %s に設定しました。" % (material.name, spec))
-
-
-def updateOldPoseLib():
-	"""
-	2017年以前に使われていたリグで作成されたポーズを更新します。
-	廃止予定です。
-
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
-	"""
-	for f in bpy.data.actions["PoseLib"].fcurves:
-		if "左" in f.data_path:
-			f.data_path = f.data_path.replace("左", "").replace("\"]", ".L\"]")
-		if "右" in f.data_path:
-			f.data_path = f.data_path.replace("右", "").replace("\"]", ".R\"]")
-
-	print("ポーズの更新作業が完了しました。")
-
-
-def toggleMorphLR():
-	"""
-	モーフの左右を標準と間違えて作っていた古いモデルを更新します。
-	この関数を実行するとウィンクが壊れます。
-	廃止予定です。
-
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
-	"""
-	for mesh in bpy.data.meshes:
-		if hasattr(mesh.shape_keys, "key_blocks"):
-			for key in mesh.shape_keys.key_blocks.keys():
-				temp = mesh.shape_keys.key_blocks[key]
-				temp.name = temp.name.replace("左", "right")
-				temp.name = temp.name.replace("右", "left")
-			for key in mesh.shape_keys.key_blocks.keys():
-				temp = mesh.shape_keys.key_blocks[key]
-				temp.name = temp.name.replace("left", "左")
-				temp.name = temp.name.replace("right", "右")
-	print("モーフの左右入れ替えが完了しました。ウィンクが壊れました。")
-
-
-def selectThisObjOnly(obj_name):
+def select_this_obj_only(obj_name):
 	"""
 	指定したオブジェクトのみを選択状態にします。
 	止まる場合は、そのオブジェクトが所属するレイヤが表示されているか確認してください。
@@ -363,7 +300,7 @@ def selectThisObjOnly(obj_name):
 	print("%s を選択しました。" % obj_name)
 
 
-def applyShapeAsBasis(obj_name, shape_name, blend=1.0):
+def apply_shape_as_basis(obj_name, shape_name, blend=1.0):
 	"""
 	指定したモーフを基準状態として登録します。
 
@@ -372,7 +309,7 @@ def applyShapeAsBasis(obj_name, shape_name, blend=1.0):
 	@param blend: (float) [任意] 元の状態に適用するシェイプキーをどのくらい混ぜるか
 	@return active_object: (bpy.data.objects[...]) シェイプキーが適用されたオブジェクト
 	"""
-	selectThisObjOnly(obj_name)
+	select_this_obj_only(obj_name)
 	bpy.ops.object.duplicate_move() # 退避
 
 	bpy.ops.object.mode_set(mode='EDIT')
@@ -401,109 +338,7 @@ def applyShapeAsBasis(obj_name, shape_name, blend=1.0):
 	return bpy.context.active_object
 
 
-def changeBoneRoll(mode):
-	"""
-	肩から末端方向へのボーンロールを変更します。
-	廃止予定です。
-
-	@param mode: (bool) [必須] Trueでロールを設定し、ローカル軸でのポージングを簡単にします。Falseでロールを初期化(0に)します。
-	@return なし: (なし) この関数に戻り値はありません。
-	"""
-	# 対象のボーン
-	bones = ("肩", "腕", "腕捩", "ひじ", "手捩", "手首", "親指", "人指", "中指", "薬指", "小指")
-
-	# アーマチュアを選ぶ
-	selectThisObjOnly(selectArmature())
-	bpy.ops.object.posemode_toggle()
-
-	Armature = bpy.data.objects[selectArmature()].data
-
-	# ボーンを選ぶ
-	for bone in bones:
-		if "指" in bone:
-			for num in ["０", "１", "２", "３"]:
-				if Armature.bones.find(bone + num + ".L") >= 0:
-					Armature.bones[bone + num + ".L"].select = True
-				if Armature.bones.find(bone + num + ".R") >= 0:
-					Armature.bones[bone + num + ".R"].select = True
-		else:
-			Armature.bones[bone + ".L"].select = True
-			Armature.bones[bone + ".R"].select = True
-
-	# 編集モードに入る
-	bpy.ops.object.editmode_toggle()
-
-	# オペレータ実行
-	if mode:
-		bpy.ops.armature.calculate_roll(type='GLOBAL_POS_Z')
-	else:
-		bpy.ops.armature.roll_clear()
-
-	print("ボーンロールの切り替えが完了しました。")
-
-
-def updateOldAction(action):
-	"""
-	GRiS1を満たさない古いモーションを更新します。
-	廃止予定です。
-
-	@param action: (str) [必須] 更新するモーションの名前。
-	@return なし: (なし) この関数に戻り値はありません。
-	"""
-	from mathutils import Euler
-	from math import pi, radians
-
-	# 変数の準備
-	# bones = ("肩", "腕", "腕捩", "ひじ", "手捩", "手首", "親指", "人指", "中指", "薬指", "小指")
-	bones = ("腕")
-	bone_list_ext = []
-	bone_list_done = [] # 一度処理したボーンを再処理しないようにします。何もしないと四元数なので4回処理されてしまいます。
-
-	# 非表示だと失敗します。
-	bpy.data.objects[selectArmature()].hide = False
-
-	# 処理するボーンの一覧をつくります。
-	for bone in bones:
-		if "指" in bone:
-			for number in ("０", "１", "２", "３"):
-				bone_list_ext.append(bone + number + ".L")
-				bone_list_ext.append(bone + number + ".R")
-		else:
-			bone_list_ext.append(bone + ".L")
-			bone_list_ext.append(bone + ".R")
-
-	# ボーンごとにそれぞれ処理していきます。
-	for bone in bone_list_ext:
-		# ボーンの roll を取得します。
-		bpy.ops.object.mode_set(mode='EDIT')
-		try:
-			rot = bpy.data.objects[selectArmature()].data.edit_bones[bone].roll
-		except KeyError:
-			bpy.ops.object.mode_set(mode='OBJECT')
-			continue
-		bpy.ops.object.mode_set(mode='OBJECT')
-
-		# roll 分逆回転してキーフレームを打ち直します。
-		for fcurve in bpy.data.actions[action].fcurves:
-			if "[\"%s\"].rotation" % bone in fcurve.data_path and bone not in bone_list_done:
-				print("%s を %f rad 修正しています..." % (fcurve.data_path, rot))
-
-				for point in fcurve.keyframe_points:
-					frame = point.co[0]
-
-					bpy.context.scene.frame_set(frame)
-					bpy.context.scene.update()
-					print("Frame: %4d" % frame, end="\r")
-
-					bpy.data.objects[selectArmature()].pose.bones[bone].rotation_quaternion.rotate(Euler((0, -rot, 0)))
-					bpy.data.objects[selectArmature()].pose.bones[bone].keyframe_insert(data_path="rotation_quaternion")
-
-				bone_list_done.append(bone)
-
-	print("更新が終了しました。必ず結果が正しいか確認を行ってください。")
-
-
-def toggleLegsIK(mode):
+def toggle_legs_ik(mode):
 	"""
 	足IKの有効/無効を切り替えます。
 
@@ -513,12 +348,12 @@ def toggleLegsIK(mode):
 	bones = ("ひざ.L", "ひざ.R", "足首.L", "足首.R")
 
 	for bone in bones:
-		bpy.data.objects[selectArmature()].pose.bones[bone].constraints["IK"].mute = not mode
+		bpy.data.objects[_select_armature()].pose.bones[bone].constraints["IK"].mute = not mode
 
 	print("足IKの %s への切り替えが完了しました。" % mode)
 
 
-def updatePmxComment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None, copyright_en=None, pname=None, additional_jp=None, additional_en=None):
+def update_pmx_comment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None, copyright_en=None, pname=None, additional_jp=None, additional_en=None):
 	"""
 	PMXファイルに埋め込まれるメタデータを更新します。
 	モジュールを呼び出した Blender ファイルと同じフォルダに changelog が存在している必要があります。
@@ -636,7 +471,7 @@ def updatePmxComment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None, 
 	print("メタデータを更新しました。")
 
 
-def switchLayers(enable=[0]):
+def switch_layers(enable=[0]):
 	"""
 	Switch scene layers.
 
@@ -650,7 +485,7 @@ def switchLayers(enable=[0]):
 	print("可視レイヤの切り替えが完了しました。")
 
 
-def multiplyMass(mul, parent):
+def multiply_mass(mul, parent):
 	"""
 	物理演算の Blender-MMD 間のつじつまを合わせるために、剛体の質量に定数を乗じます。
 	MMD は初期状態で Blender の10倍の重力加速度が設定されているようです。
@@ -665,7 +500,7 @@ def multiplyMass(mul, parent):
 	print("剛体の質量を %f 倍しました。" % mul)
 
 
-def toggleSubsurf(mode, target=None, mod_type=('SUBSURF')):
+def toggle_subsurf(mode, target=None, mod_type=('SUBSURF')):
 	"""
 	細分割曲面モディファイアおよび他のモディファイアの有効・無効を切り替えます。
 
@@ -700,7 +535,7 @@ def toggleSubsurf(mode, target=None, mod_type=('SUBSURF')):
 	return toggled
 
 
-def deleteVertexGroup(object_name, group_name):
+def delete_vertex_group(object_name, group_name):
 	"""
 	指定されたオブジェクトの指定された頂点グループに属する頂点を削除します。
 	軽量版の生成に用いられます。
@@ -709,7 +544,7 @@ def deleteVertexGroup(object_name, group_name):
 	@param group_name ([str]): [必須] 削除する頂点グループ名のリスト
 	@return obj (bpy.data.objects[...]): 指定の頂点が削除されたオブジェクト
 	"""
-	selectThisObjOnly(object_name)
+	select_this_obj_only(object_name)
 
 	bpy.ops.object.duplicate_move() # 退避
 
