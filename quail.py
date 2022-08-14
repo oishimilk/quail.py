@@ -2,7 +2,7 @@
 Blender で MMD モデルを作るお手伝いをします。
 Copyright (C) 2017-2022 Quail (oishimilk). Some rights reserved.
 
-Compatible with Blender 2.79 and mmd_tools v0.6.x
+Compatible with Blender 2.79 and mmd_tools v0.6.0
 """
 import bpy
 import mmd_tools
@@ -735,7 +735,7 @@ def deleteVertexGroup(object_name, group_name):
 
 
 """
-Then what do you want to do?
+Then what would you like to do?
 Type "import quail" and quail.<function> in the console.
 If you need help, type "help(quail)" in the console.
 To reload this lib, type "import importlib; importlib.reload(quail)"
