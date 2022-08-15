@@ -7,6 +7,8 @@ Compatible with Blender 3.2.2 and mmd_tools v2.4.0
 import bpy
 import mmd_tools
 
+from typing import Union
+
 # バージョン
 VERSION = (0, 2, 0)
 
@@ -27,17 +29,17 @@ def _select_armature() -> bpy.types.Object:
 	raise RuntimeError("Armature が見つかりませんでした。")
 
 
-def set_japanese_bone_names():
+def set_japanese_bone_names() -> None:
 	"""
-	MMD用日本語ボーン名を割り当てます。
+	Blender用ボーン名を使ってMMD用日本語ボーン名を割り当てます。
 
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
+	- `mmd_tools`側にもすでに同様の機能があるので廃止予定です。
+	- `excluded`ボーンのみ個別対応が必要なため残しています。
 	"""
 	# 以下のボーンは処理されません。
 	excluded = ("上半身2補助.L", "上半身2補助.R", "腰キャンセル.L", "腰キャンセル.R", "下半身補助.L", "下半身補助.R")
 
-	for bone in bpy.data.objects[_select_armature()].pose.bones:
+	for bone in _select_armature().pose.bones:
 		if bone.is_mmd_shadow_bone:
 			continue
 
@@ -55,50 +57,44 @@ def set_japanese_bone_names():
 		print("%s を設定しました。" % bone.name)
 
 
-def set_english_bone_names(overwrite=False):
+def set_english_bone_names(overwrite: bool = False) -> None:
 	"""
-	MMD用英語ボーン名を割り当てます。
-	先に set_japanese_bone_names() を実行してください。
+	MMD用日本語ボーン名を翻訳してMMD用英語ボーン名を割り当てます。
+	先に`set_japanese_bone_names()`を実行してください。
+	`mmd_tools`側にもすでに同様の機能があるので廃止予定です。
 
 	@param overwrite: (bool) [任意] 設定済みの名前を上書きするかどうか
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	for bone in bpy.data.objects[_select_armature()].pose.bones:
+	for bone in _select_armature().pose.bones:
 		if bone.is_mmd_shadow_bone:
 			continue
 
-		EnglishName = mmd_tools.translations.translateFromJp(bone.mmd_bone.name_j)
+		english_name = mmd_tools.translations.translateFromJp(bone.mmd_bone.name_j)
 
-		if not(EnglishName.replace("_", "").encode('utf-8').isalnum()):
+		if not(english_name.replace("_", "").encode('utf-8').isalnum()):
 			print("※%sは残念ながら辞書に登録がありませんでした。飛ばします。" % bone.name)
 		else:
 			if bone.mmd_bone.name_e != "" and not(overwrite):
 				print("※%sの設定を飛ばします。" % bone.name)
 			else:
-				bone.mmd_bone.name_e = EnglishName
-				print("%sの英名として%sを登録しました。" % (bone.name, EnglishName))
+				bone.mmd_bone.name_e = english_name
+				print("%sの英名として%sを登録しました。" % (bone.name, english_name))
 
 
-def show_bone_identifier():
+def show_bone_identifier() -> None:
 	"""
-	IDが割り当てられているボーンを表示します。
-
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
+	ID が割り当てられているボーンを表示します。
 	"""
-	for bone in bpy.data.objects[_select_armature()].pose.bones:
+	for bone in _select_armature().pose.bones:
 		if bone.mmd_bone.bone_id != -1:
 			print("ID: %d 名前: %s" % (bone.mmd_bone.bone_id, bone.name))
 
 
-def check_invalid_bone_name():
+def check_invalid_bone_name() -> None:
 	"""
 	無効な名前をもつボーンがないか確認します。
-
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	for bone in bpy.data.objects[_select_armature()].pose.bones:
+	for bone in _select_armature().pose.bones:
 		if bone.is_mmd_shadow_bone:
 			continue
 
@@ -120,16 +116,33 @@ def check_invalid_bone_name():
 				print("Blender用(%s)とMMD用(%s)で名称が異なっています!" % (bone.name, bone.mmd_bone.name_j))
 
 
-def check_bone_panel(model_name=bpy.context.scene.name):
+def check_bone_panel(root_obj: Union[None, bpy.types.Object] = None) -> None:
 	"""
-	表示パネルに登録されていないボーンをあぶり出します。
+	表示パネルに登録されているボーンを選択することで、未登録のボーンをあぶり出します。
 
-	@param model_name: (str) [任意] MMDモデルに属するオブジェクトの名前
-	@return なし: (なし) この関数に戻り値はありません。
+	@param root_obj: (None | bpy.types.Object) [任意] MMD モデルのルート
 	"""
-	bones = bpy.data.objects[_select_armature()].pose.bones
+	# Armature
+	if root_obj is None:
+		bones = _select_armature().pose.bones
+	else:
+		for obj in root_obj.children:
+			if obj.type == 'ARMATURE':
+				bones = obj.pose.bones
+				break
+		else:
+			raise RuntimeError("Armature が見つかりませんでした。")
 
-	for frame in bpy.data.objects[model_name].mmd_root.display_item_frames:
+	# Root
+	if root_obj is None:
+		for obj in bpy.context.scene.objects:
+			if obj.mmd_type == 'ROOT':
+				root_obj = obj
+				break
+		else:
+			raise RuntimeError("MMD Root オブジェクトが見つかりませんでした。")
+
+	for frame in root_obj.mmd_root.display_item_frames:
 		for item in frame.items:
 			if item.name in bones:
 				bones[item.name].bone.select = True
