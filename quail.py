@@ -8,7 +8,7 @@ import csv
 import sys
 import platform
 
-from typing import Union
+from typing import Iterable, Sequence, Union
 from datetime import datetime
 
 import bpy
@@ -287,54 +287,47 @@ def check_physics_name_duplication_in_mmd() -> None:
 			print("%s の名称が重複しています!" % name)
 
 
-def process_tip_bones_for_mmd():
+def process_tip_bones_for_mmd() -> None:
 	"""
 	先ボーンを設定します。
-
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	Arm = bpy.data.objects[_select_armature()]
+	arm = _select_armature()
 
-	for bone in Arm.pose.bones:
+	for bone in arm.pose.bones:
 		if bone.mmd_bone.name_j.endswith("先"):
 			bone.mmd_bone.is_tip = True
-			Arm.data.bones[bone.name].hide = True
-			print("%sを先ボーンに設定しました。" % bone.name)
+			arm.data.bones[bone.name].hide = True
+			print("%s を先ボーンに設定しました。" % bone.name)
 
 
-def select_this_obj_only(obj_name):
+def select_this_obj_only(obj: bpy.types.Object) -> None:
 	"""
 	指定したオブジェクトのみを選択状態にします。
 	止まる場合は、そのオブジェクトが所属するレイヤが表示されているか確認してください。
 
-	@param obj_name: (str) [必須] 選択するオブジェクトの名前
-	@return なし: (なし) この関数に戻り値はありません。
+	@param obj: (bpy.types.Object) [必須] 選択するオブジェクト
 	"""
 	bpy.ops.object.select_all(action='DESELECT')
-	bpy.data.objects[obj_name].select = True
-	bpy.context.scene.objects.active = bpy.data.objects[obj_name]
-
-	# 不可視状態のオブジェクトは次の操作を失敗させます。
-	if bpy.data.objects[obj_name].hide:
-		bpy.data.objects[obj_name].hide = False
+	obj.hide = False
+	obj.select = True
+	bpy.context.active_object = obj
 
 	# 強制オブジェクトモード
 	bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
 
-	print("%s を選択しました。" % obj_name)
+	print("%s を選択しました。" % obj)
 
 
-def apply_shape_as_basis(obj_name, shape_name, blend=1.0):
+def apply_shape_as_basis(obj: bpy.types.Object, shape_name: Union[str, Sequence[str]], blend: float = 1.0) -> bpy.types.Object:
 	"""
 	指定したモーフを基準状態として登録します。
 
-	@param obj_name: (str) [必須] 編集するオブジェクトの名前
-	@param shape_name: (str) または ([str]) [必須] 適用するシェイプキーの名前
+	@param obj: (bpy.types.Object) [必須] 編集するオブジェクト
+	@param shape_name: (str | [str]) [必須] 適用するシェイプキーの名前
 	@param blend: (float) [任意] 元の状態に適用するシェイプキーをどのくらい混ぜるか
-	@return active_object: (bpy.data.objects[...]) シェイプキーが適用されたオブジェクト
+	@return: (bpy.types.Object) シェイプキーが適用されたオブジェクト
 	"""
-	select_this_obj_only(obj_name)
+	select_this_obj_only(obj)
 	bpy.ops.object.duplicate_move() # 退避
 
 	bpy.ops.object.mode_set(mode='EDIT')
@@ -345,9 +338,9 @@ def apply_shape_as_basis(obj_name, shape_name, blend=1.0):
 	if type(shape_name) is str:
 		if shape_name in bpy.context.active_object.data.shape_keys.key_blocks:
 			bpy.ops.mesh.blend_from_shape(shape=shape_name, add=False, blend=blend)
-			print("%s に %s を基準状態として登録しました。" % (obj_name, shape_name))
+			print("%s に %s を基準状態として登録しました。" % (obj, shape_name))
 		else:
-			print("警告: %s に %s というキーは存在しません。何も行いません。" % (obj_name, shape_name))
+			print("警告: %s に %s というキーは存在しません。何も行いません。" % (obj, shape_name))
 	else:
 		for shp in shape_name:
 			if shp in bpy.context.active_object.data.shape_keys.key_blocks:
@@ -356,34 +349,33 @@ def apply_shape_as_basis(obj_name, shape_name, blend=1.0):
 				bpy.ops.object.mode_set(mode='EDIT')
 				print("%s を基準状態として登録しました。" % shp)
 			else:
-				print("警告: %s に %s というキーは存在しません。何も行いません。" % (obj_name, shp))
+				print("警告: %s に %s というキーは存在しません。何も行いません。" % (obj, shp))
 
 	bpy.ops.object.mode_set(mode='OBJECT')
 
 	return bpy.context.active_object
 
 
-def toggle_legs_ik(mode):
+def toggle_legs_ik(mode: bool) -> None:
 	"""
-	足IKの有効/無効を切り替えます。
+	足 IK の有効/無効を切り替えます。
 
-	@param mode: (bool) [必須] Trueで足IKを有効に、Falseで無効にします。
-	@return なし: (なし) この関数に戻り値はありません。
+	@param mode: (bool) [必須] `True`で足 IK を有効に、`False`で無効にします。
 	"""
 	bones = ("ひざ.L", "ひざ.R", "足首.L", "足首.R")
 
 	for bone in bones:
-		bpy.data.objects[_select_armature()].pose.bones[bone].constraints["IK"].mute = not mode
+		_select_armature().pose.bones[bone].constraints["IK"].mute = not mode
 
-	print("足IKの %s への切り替えが完了しました。" % mode)
+	print("足 IK の %s への切り替えが完了しました。" % mode)
 
 
-def update_pmx_comment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None, copyright_en=None, pname=None, additional_jp=None, additional_en=None):
+def update_pmx_comment(mmd_root: mmd_tools.properties.root.MMDRoot, identifier: Union[str, None] = None, mm_ver: Union[Sequence[int], None] = None, copyright_jp: Union[str, None] = None, copyright_en: Union[str, None] = None, pname: Union[str, None] = None, additional_jp: Union[str, None] = None, additional_en: Union[str, None] = None) -> None:
 	"""
-	PMXファイルに埋め込まれるメタデータを更新します。
-	モジュールを呼び出した Blender ファイルと同じフォルダに changelog が存在している必要があります。
+	PMX ファイルに埋め込まれるメタデータを更新します。
+	モジュールを呼び出した Blender ファイルと同じフォルダに`changelog`が存在している必要があります。
 
-	@param mmd_root: (bpy.data.objects[...].mmd_root) [必須] モデルのルートオブジェクト
+	@param mmd_root: (mmd_tools.properties.root.MMDRoot) [必須] モデルのルート
 	@param identifier: (str) [任意] モデルの changelog 内における識別子(リビジョンの取得に使います)
 	@param mm_ver: ((int)) [任意] Model Manipulator (mm.py) のバージョン
 	@param copyright_jp: (str) [任意] 著作権に関する情報(日本語)
@@ -391,7 +383,6 @@ def update_pmx_comment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None
 	@param pname: (str) [任意] モデルが属する何らかの大規模プロジェクト
 	@param additional_jp: (str) [任意] 追加情報(日本語)
 	@param additional_en: (str) [任意] 追加情報(英語)
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
 	# コメントが指定されていない場合は例外を発します。
 	assert mmd_root.comment_text
@@ -441,7 +432,7 @@ def update_pmx_comment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None
 		comment_jp.write("project:\t%s\n" % pname)
 		comment_en.write("project:\t%s\n" % pname)
 
-	def iter2str(iterable, split="."):
+	def iter2str(iterable: Iterable, split: str = ".") -> str:
 		"""
 		iterable を 結合して str に変換します。
 
@@ -449,7 +440,6 @@ def update_pmx_comment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None
 		@param split: (str) [任意] 区切り文字
 		@return cat: (str) 結合された文字列 ex. 2.79.0
 		"""
-
 		cat = ""
 
 		for i in iterable:
@@ -491,54 +481,56 @@ def update_pmx_comment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None
 	print("メタデータを更新しました。")
 
 
-def switch_layers(enable=[0]):
+def switch_layers(enable: Sequence[int] = [0]) -> None:
 	"""
 	Switch scene layers.
 
 	@param enable: [optional] ([int]) Layers enabled.
-	@return None: This function doesn't return values.
 	"""
-	layers = bpy.context.scene.layers
-	for i in range(len(layers)):
-		layers[i] = i in enable
+	# レイヤーではない
+	layers = bpy.context.scene.collection.children
+
+	for i, layer in enumerate(layers):
+		layer.hide_viewport = i not in enable
+		layer.hide_render = i not in enable
 
 	print("可視レイヤの切り替えが完了しました。")
 
 
-def multiply_mass(mul, parent):
+def multiply_mass(mul: float, parent: bpy.types.Object) -> None:
 	"""
 	物理演算の Blender-MMD 間のつじつまを合わせるために、剛体の質量に定数を乗じます。
 	MMD は初期状態で Blender の10倍の重力加速度が設定されているようです。
 
 	@param mul: (float) [必須] 質量の倍数
-	@param parent: (str) [必須] 剛体の親。通常、rigidbodiesです。
-	@return なし: (なし) この関数は戻り値がありません。
+	@param parent: (bpy.types.Object) [必須] 剛体の親。通常、`rigidbodies`です。
 	"""
-	for obj in bpy.data.objects[parent].children:
+	assert parent.mmd_type == 'RIGID_GRP_OBJ'
+
+	for obj in parent.children:
 		obj.rigid_body.mass *= mul
 
 	print("剛体の質量を %f 倍しました。" % mul)
 
 
-def toggle_subsurf(mode, target=None, mod_type=('SUBSURF')):
+def toggle_subsurf(mode: bool, target: Union[None, Sequence[bpy.types.Modifier]] = None, mod_type: Sequence[str] = ('SUBSURF')) -> Sequence[bpy.types.Modifier]:
 	"""
 	細分割曲面モディファイアおよび他のモディファイアの有効・無効を切り替えます。
 
 	@param mode: (bool) [必須]
-		有効にするか(True) 無効にするか(False)
-	@param target: ([bpy.data.objects[...].modifiers[...]]) [任意]
-		対象とするモディファイアのリスト
-		未指定だとすべてのオブジェクトに設定されたモディファイアを対象とします。
-		mod_type は無視されます。
+		有効にするか(`True`) 無効にするか(`False`)
+	@param target: ([bpy.types.Modifier]) [任意]
+		対象とするモディファイアのリストです。指定した場合、`mod_type`は無視されます。
+		未指定の場合、すべてのオブジェクトに設定された`mod_type`に該当するモディファイアを対象とします。
 	@param mod_type: ((str)) [任意]
 		切り替えるモディファイアのタイプ
-	@return toggled: ([bpy.data.objects[...].modifiers[...]])
+	@return toggled: ([bpy.types.Modifier])
 		切り替えたモディファイアのリスト
 	"""
 	toggled = []
 
 	if target is None:
-		for obj in bpy.data.objects:
+		for obj in bpy.context.scene.objects:
 			for mod in obj.modifiers:
 				if mod.type in mod_type:
 					if mod.show_viewport != mode:
@@ -555,16 +547,16 @@ def toggle_subsurf(mode, target=None, mod_type=('SUBSURF')):
 	return toggled
 
 
-def delete_vertex_group(object_name, group_name):
+def delete_vertex_group(obj: bpy.types.Object, group_name: Sequence[str]) -> bpy.types.Object:
 	"""
 	指定されたオブジェクトの指定された頂点グループに属する頂点を削除します。
 	軽量版の生成に用いられます。
 
-	@param object_name (str): [必須] 対象とするオブジェクト
+	@param obj (bpy.types.Object): [必須] 対象とするオブジェクト
 	@param group_name ([str]): [必須] 削除する頂点グループ名のリスト
-	@return obj (bpy.data.objects[...]): 指定の頂点が削除されたオブジェクト
+	@return obj (bpy.types.Object): 指定の頂点が削除されたオブジェクト
 	"""
-	select_this_obj_only(object_name)
+	select_this_obj_only(obj)
 
 	bpy.ops.object.duplicate_move() # 退避
 
@@ -584,14 +576,13 @@ def delete_vertex_group(object_name, group_name):
 	bpy.ops.mesh.delete(type='VERT')
 	bpy.ops.object.mode_set(mode='OBJECT')
 
-	print("%s の %s に属する頂点を削除しました。" % (object_name, group_name))
+	print("%s の %s に属する頂点を削除しました。" % (obj, group_name))
 
 	return obj
 
 
 """
 Then what would you like to do?
-Type "import quail" and quail.<function> in the console.
+Type "quail = bpy.data.texts['quail.py'].as_module()" and quail.<function> in the console.
 If you need help, type "help(quail)" in the console.
-To reload this lib, type "import importlib; importlib.reload(quail)"
 """
