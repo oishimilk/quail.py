@@ -4,10 +4,15 @@ Copyright (C) 2017-2022 Quail (oishimilk). Some rights reserved.
 
 Compatible with Blender 3.2.2 and mmd_tools v2.4.0
 """
-import bpy
-import mmd_tools
+import csv
+import sys
+import platform
 
 from typing import Union
+from datetime import datetime
+
+import bpy
+import mmd_tools
 
 # バージョン
 VERSION = (0, 2, 0)
@@ -27,6 +32,20 @@ def _select_armature() -> bpy.types.Object:
 					return child
 
 	raise RuntimeError("Armature が見つかりませんでした。")
+
+
+def _select_root() -> bpy.types.Object:
+	"""
+	現在の Blender シーン中で最初に見つかった MMD Root オブジェクト を返します。
+	シーンあたり1体のモデルが存在することを前提としています。
+
+	@return: (bpy_types.Object) MMD Root
+	"""
+	for obj in bpy.context.scene.objects:
+		if obj.mmd_type == 'ROOT':
+			return obj
+
+	raise RuntimeError("MMD Root オブジェクトが見つかりませんでした。")
 
 
 def set_japanese_bone_names() -> None:
@@ -122,8 +141,8 @@ def check_bone_panel(root_obj: Union[None, bpy.types.Object] = None) -> None:
 
 	@param root_obj: (None | bpy.types.Object) [任意] MMD モデルのルート
 	"""
-	# Armature
 	if root_obj is None:
+		root_obj = _select_root()
 		bones = _select_armature().pose.bones
 	else:
 		for obj in root_obj.children:
@@ -133,15 +152,6 @@ def check_bone_panel(root_obj: Union[None, bpy.types.Object] = None) -> None:
 		else:
 			raise RuntimeError("Armature が見つかりませんでした。")
 
-	# Root
-	if root_obj is None:
-		for obj in bpy.context.scene.objects:
-			if obj.mmd_type == 'ROOT':
-				root_obj = obj
-				break
-		else:
-			raise RuntimeError("MMD Root オブジェクトが見つかりませんでした。")
-
 	for frame in root_obj.mmd_root.display_item_frames:
 		for item in frame.items:
 			if item.name in bones:
@@ -150,61 +160,62 @@ def check_bone_panel(root_obj: Union[None, bpy.types.Object] = None) -> None:
 	print("現在選択されていないボーンは表示パネルに未登録です。")
 
 
-def set_morph_panel(model_name=bpy.context.scene.name):
+def set_morph_panel(root_obj: Union[None, bpy.types.Object] = None) -> None:
 	"""
 	表示パネルにモーフを設定します。
 
-	@param model_name: (str) [任意] MMDモデルに属するオブジェクトの名前
-	@return なし: (なし) この関数に戻り値はありません。
+	@param root_obj: (None | bpy.types.Object) [任意] MMD モデルのルート
 	"""
 	processed_list = []
 
-	for i in bpy.data.objects[model_name].mmd_root.display_item_frames['表情'].items:
+	if root_obj is None:
+		root_obj = _select_root()
+
+	for i in root_obj.mmd_root.display_item_frames['表情'].items:
 		processed_list.append(i.name)
 
 	for keycolle in bpy.data.shape_keys:
-		for shape in keycolle.key_blocks:
-			if shape.name == "ベース" or shape.name == "Basis":
-				print("ベースは登録しません! 中断します。")
-				continue
-
+		# 最初のキーブロックはベース (Basis) なので飛ばします。
+		for shape in keycolle.key_blocks[1:]:
 			if shape.name in processed_list:
 				print(shape.name + " はすでに処理済みです! 二重登録を防止するために中断します。")
 				continue
 
-			temp = bpy.data.objects[model_name].mmd_root.display_item_frames['表情'].items.add()
+			temp = root_obj.mmd_root.display_item_frames['表情'].items.add()
 			temp.type = 'MORPH'
 			temp.name = shape.name
-			temp = bpy.data.objects[model_name].mmd_root.vertex_morphs.add()
+			temp = root_obj.mmd_root.vertex_morphs.add()
 			temp.name = shape.name
 
 			processed_list.append(shape.name)
 			print("%s を登録しました。" % shape.name)
 
 
-def set_english_morph_names(target=bpy.context.scene.name, csv_file="//../CommonMorphList.csv", overwrite=True):
+def set_english_morph_names(root_obj: Union[None, bpy.types.Object] = None, csv_file: str = "//../CommonMorphList.csv", overwrite: bool = True) -> None:
 	"""
 	英語のモーフ名を設定します。
+	`mmd_tools`側に同等の機能があるため、廃止予定です。
 
-	@param target: (str) [任意] MMDモデルに属するオブジェクトの名前
+	@param root_obj: (None | bpy.types.Object) [任意] MMD モデルのルート
 	@param csv_file: (str) [任意] 設定に用いる辞書
 	@param overwrite: (bool) [任意] 設定済みの名前を上書きするかどうか
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
 	with open(bpy.path.abspath(csv_file), "r") as f:
-		import csv
 		reader = csv.reader(f)
 
-		for morph in reader:
-			if morph[0] in bpy.data.objects[target].mmd_root.vertex_morphs:
-				m = bpy.data.objects[target].mmd_root.vertex_morphs[morph[0]]
-				if not overwrite and m.name_e != "":
-					print("※%sの設定を飛ばします。" % m.name)
+		for morph_dict in reader:
+			morph_name_ja, morph_name_en = morph_dict
+
+			if morph_name_ja in root_obj.mmd_root.vertex_morphs:
+				morph = root_obj.mmd_root.vertex_morphs[morph_name_ja]
+
+				if not overwrite and morph.name_e != "":
+					print("※ %s の設定を飛ばします。" % morph.name)
 				else:
-					m.name_e = morph[1]
-					print("%sの英名%sを登録しました。" % (morph[0], morph[1]))
+					morph.name_e = morph_name_en
+					print("%s の英名 %s を登録しました。" % (morph_name_ja, morph_name_en))
 			else:
-				print("%s: このモデルにそのようなモーフはありません。" % morph[0])
+				print("%s: このモデルにそのようなモーフはありません。" % morph_name_ja)
 
 
 def set_english_rigid_names(overwrite=False):
@@ -385,11 +396,6 @@ def update_pmx_comment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None
 	@param additional_en: (str) [任意] 追加情報(英語)
 	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	# pylint 大激怒
-	import sys
-	import platform
-	from datetime import datetime
-
 	# コメントが指定されていない場合は例外を発します。
 	assert mmd_root.comment_text
 	assert mmd_root.comment_e_text
