@@ -11,16 +11,20 @@ import mmd_tools
 VERSION = (0, 2, 0)
 
 
-def _select_armature():
+def _select_armature() -> bpy.types.Object:
 	"""
-	現在の Blender シーン中で最初に見つかった Armature 名を返します。
+	現在の Blender シーン中で最初に見つかった Armature を返します。
+	シーンあたり1体のモデルが存在することを前提としています。
 
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return name: (str) Armature名
+	@return: (bpy_types.Object) Armature
 	"""
 	for obj in bpy.context.scene.objects:
-		if obj.type == 'ARMATURE':
-			return obj.name
+		if obj.mmd_type == 'ROOT':
+			for child in obj.children:
+				if child.type == 'ARMATURE':
+					return child
+
+	raise RuntimeError("Armature が見つかりませんでした。")
 
 
 def set_japanese_bone_names():
