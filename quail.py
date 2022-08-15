@@ -218,76 +218,73 @@ def set_english_morph_names(root_obj: Union[None, bpy.types.Object] = None, csv_
 				print("%s: このモデルにそのようなモーフはありません。" % morph_name_ja)
 
 
-def set_english_rigid_names(overwrite=False):
+def set_english_rigid_names(overwrite: bool = False) -> None:
 	"""
 	英語の剛体名を設定します。
+	`mmd_tools`側に同等の機能があるため廃止予定です。
 
 	@param overwrite: (bool) [任意] 設定済みの名前を上書きするかどうか
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	for rigid in bpy.data.objects:
-		if rigid.mmd_rigid.name_j == "":
+	for obj in bpy.context.scene.objects:
+		if obj.mmd_type != 'RIGID_BODY':
 			continue
-		EnglishName = mmd_tools.translations.translateFromJp(rigid.mmd_rigid.name_j)
-		if EnglishName.replace("_", "").encode('utf-8').isalnum():
-			if not overwrite and rigid.mmd_rigid.name_e != "":
-				print("※%sの設定を飛ばします。" % rigid.mmd_rigid.name_j)
+
+		english_name = mmd_tools.translations.translateFromJp(obj.mmd_rigid.name_j)
+
+		if english_name.replace("_", "").encode('utf-8').isalnum():
+			if not overwrite and obj.mmd_rigid.name_e != "":
+				print("※ %s の設定を飛ばします。" % obj.mmd_rigid.name_j)
 			else:
-				rigid.mmd_rigid.name_e = EnglishName
-				print("%sの英名として%sを登録しました。" % (rigid.mmd_rigid.name_j, EnglishName))
+				obj.mmd_rigid.name_e = english_name
+				print("%s の英名として %s を登録しました。" % (obj.mmd_rigid.name_j, english_name))
 		else:
-			print("!!! %sは残念ながら辞書に登録がありませんでした。飛ばします。" % rigid.mmd_rigid.name_j)
+			print("!!! %s は残念ながら辞書に登録がありませんでした。飛ばします。" % obj.mmd_rigid.name_j)
 			continue
 
 
-def set_english_joint_names(overwrite=False):
+def set_english_joint_names(overwrite: bool = False) -> None:
 	"""
 	関節の剛体名を設定します。
+	`mmd_tools`側に同等の機能があるため廃止予定です。
 
 	@param overwrite: (bool) [任意] 設定済みの名前を上書きするかどうか
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	for joint in bpy.data.objects:
-		if joint.mmd_joint.name_j == "":
+	for obj in bpy.context.scene.objects:
+		if obj.mmd_type != 'JOINT':
 			continue
 
-		EnglishName = mmd_tools.translations.translateFromJp(joint.mmd_joint.name_j)
+		english_name = mmd_tools.translations.translateFromJp(obj.mmd_joint.name_j)
 
-		if EnglishName.replace("_", "").encode('utf-8').isalnum():
-			if not overwrite and joint.mmd_joint.name_e != "":
-				print("※%sの設定を飛ばします。" % joint.mmd_joint.name_j)
+		if english_name.replace("_", "").encode('utf-8').isalnum():
+			if not overwrite and obj.mmd_joint.name_e != "":
+				print("※ %s の設定を飛ばします。" % obj.mmd_joint.name_j)
 			else:
-				joint.mmd_joint.name_e = EnglishName
-				print("%sの英名として%sを登録しました。" % (joint.mmd_joint.name_j, EnglishName))
+				obj.mmd_joint.name_e = english_name
+				print("%s の英名として %s を登録しました。" % (obj.mmd_joint.name_j, english_name))
 		else:
-			print("!!! %sは残念ながら辞書に登録がありませんでした。飛ばします。" % joint.mmd_joint.name_j)
+			print("!!! %s は残念ながら辞書に登録がありませんでした。飛ばします。" % obj.mmd_joint.name_j)
 			continue
 
 
-def check_physics_duplication_in_mmd():
+def check_physics_name_duplication_in_mmd() -> None:
 	"""
-	剛体・関節が重複していないか確認します。
-
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
+	剛体・関節名が重複していないか確認します。
 	"""
 	rigids = []
 	joints = []
 
-	for obj in bpy.data.objects:
-		if obj.mmd_joint.name_j != "":
+	for obj in bpy.context.scene.objects:
+		if obj.mmd_type == 'JOINT':
 			joints.append(obj.mmd_joint.name_j)
-		if obj.mmd_rigid.name_j != "":
+
+		if obj.mmd_type == 'RIGID_BODY':
 			rigids.append(obj.mmd_rigid.name_j)
 
-	for lst in joints + rigids:
-		for name1 in lst:
-			counter = 0
-			for name2 in lst:
-				if name1 == name2:
-					counter += 1
-			if counter > 1:
-				print("%sの名称が重複しています! %s" % (lst, name1))
+	physics = rigids + joints
+
+	for name in physics:
+		if physics.count(name) > 2:
+			print("%s の名称が重複しています!" % name)
 
 
 def process_tip_bones_for_mmd():
