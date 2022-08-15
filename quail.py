@@ -497,12 +497,12 @@ def toggleLegsIK(mode: bool) -> None:
 	print("足IKの %s への切り替えが完了しました。" % mode)
 
 
-def updatePmxComment(mmd_root: mmd_tools.properties.MMDRoot, identifier: Union[None, str] = None, mm_ver: Union[None, Sequence[int]] = None, copyright_jp: Union[None, str] = None, copyright_en: Union[None, str] = None, pname: Union[None, str] = None, additional_jp: Union[None, str] = None, additional_en: Union[None, str] = None) -> None:
+def updatePmxComment(mmd_root: mmd_tools.properties.root.MMDRoot, identifier: Union[None, str] = None, mm_ver: Union[None, Sequence[int]] = None, copyright_jp: Union[None, str] = None, copyright_en: Union[None, str] = None, pname: Union[None, str] = None, additional_jp: Union[None, str] = None, additional_en: Union[None, str] = None) -> None:
 	"""
 	PMX ファイルに埋め込まれるメタデータを更新します。
 	モジュールを呼び出した Blender ファイルと同じフォルダに`changelog`が存在している必要があります。
 
-	@param mmd_root: (mmd_tools.properties.MMDRoot) [必須] モデルのルート
+	@param mmd_root: (mmd_tools.properties.root.MMDRoot) [必須] モデルのルート
 	@param identifier: (str) [任意] モデルの changelog 内における識別子(リビジョンの取得に使います)
 	@param mm_ver: ((int)) [任意] Model Manipulator (mm.py) のバージョン
 	@param copyright_jp: (str) [任意] 著作権に関する情報(日本語)
