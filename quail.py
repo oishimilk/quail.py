@@ -516,6 +516,7 @@ def multiply_mass(mul: float, parent: bpy.types.Object) -> None:
 def toggle_subsurf(mode: bool, target: Union[None, Sequence[bpy.types.Modifier]] = None, mod_type: Sequence[str] = ('SUBSURF')) -> Sequence[bpy.types.Modifier]:
 	"""
 	細分割曲面モディファイアおよび他のモディファイアの有効・無効を切り替えます。
+	互換性の注意: 0.2.0: `target`が未指定の場合、現在のシーンに関係するオブジェクトのみ取り扱います。
 
 	@param mode: (bool) [必須]
 		有効にするか(`True`) 無効にするか(`False`)
