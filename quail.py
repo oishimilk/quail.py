@@ -4,31 +4,41 @@ Copyright (C) 2017-2022 Quail (oishimilk). Some rights reserved.
 
 Compatible with Blender 2.79 and mmd_tools v0.6.0
 """
+import csv
+import sys
+import platform
+
+from typing import Iterable, Sequence, Union
+from datetime import datetime
+
 import bpy
+
+from mathutils import Euler
+
 import mmd_tools
 
 # バージョン
 VERSION = (0, 1, 3)
 
 
-def selectArmature():
+def selectArmature() -> str:
 	"""
 	現在の Blender シーン中で最初に見つかった Armature 名を返します。
 
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return name: (str) Armature名
+	@return: (str) Armature 名
 	"""
 	for obj in bpy.context.scene.objects:
-		if obj.type == 'ARMATURE':
-			return obj.name
+		if obj.mmd_type == 'ROOT':
+			for child in obj.children:
+				if child.type == 'ARMATURE':
+					return child.name
+
+	raise RuntimeError("Armature が見つかりませんでした。")
 
 
-def setJapaneseBoneNames():
+def setJapaneseBoneNames() -> None:
 	"""
-	MMD用日本語ボーン名を割り当てます。
-
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
+	MMD 用日本語ボーン名を割り当てます。
 	"""
 	# 以下のボーンは処理されません。
 	excluded = ("上半身2補助.L", "上半身2補助.R", "腰キャンセル.L", "腰キャンセル.R", "下半身補助.L", "下半身補助.R")
@@ -51,48 +61,41 @@ def setJapaneseBoneNames():
 		print("%s を設定しました。" % bone.name)
 
 
-def setEnglishBoneNames(overwrite=False):
+def setEnglishBoneNames(overwrite: bool = False) -> None:
 	"""
-	MMD用英語ボーン名を割り当てます。
-	先に setJapaneseBoneNames() を実行してください。
+	MMD 用英語ボーン名を割り当てます。
+	先に`setJapaneseBoneNames()`を実行してください。
 
 	@param overwrite: (bool) [任意] 設定済みの名前を上書きするかどうか
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
 	for bone in bpy.data.objects[selectArmature()].pose.bones:
 		if bone.is_mmd_shadow_bone:
 			continue
 
-		EnglishName = mmd_tools.translations.translateFromJp(bone.mmd_bone.name_j)
+		english_name = mmd_tools.translations.translateFromJp(bone.mmd_bone.name_j)
 
-		if not(EnglishName.replace("_", "").encode('utf-8').isalnum()):
-			print("※%sは残念ながら辞書に登録がありませんでした。飛ばします。" % bone.name)
+		if not(english_name.replace("_", "").encode('utf-8').isalnum()):
+			print("※ %s は残念ながら辞書に登録がありませんでした。飛ばします。" % bone.name)
 		else:
 			if bone.mmd_bone.name_e != "" and not(overwrite):
-				print("※%sの設定を飛ばします。" % bone.name)
+				print("※ %s の設定を飛ばします。" % bone.name)
 			else:
-				bone.mmd_bone.name_e = EnglishName
-				print("%sの英名として%sを登録しました。" % (bone.name, EnglishName))
+				bone.mmd_bone.name_e = english_name
+				print("%s の英名として %s を登録しました。" % (bone.name, english_name))
 
 
-def showBoneIdentifier():
+def showBoneIdentifier() -> None:
 	"""
-	IDが割り当てられているボーンを表示します。
-
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
+	ID が割り当てられているボーンを表示します。
 	"""
 	for bone in bpy.data.objects[selectArmature()].pose.bones:
 		if bone.mmd_bone.bone_id != -1:
 			print("ID: %d 名前: %s" % (bone.mmd_bone.bone_id, bone.name))
 
 
-def checkInvalidBoneName():
+def checkInvalidBoneName() -> None:
 	"""
 	無効な名前をもつボーンがないか確認します。
-
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
 	for bone in bpy.data.objects[selectArmature()].pose.bones:
 		if bone.is_mmd_shadow_bone:
@@ -116,12 +119,11 @@ def checkInvalidBoneName():
 				print("Blender用(%s)とMMD用(%s)で名称が異なっています!" % (bone.name, bone.mmd_bone.name_j))
 
 
-def checkBonePanel(model_name=bpy.context.scene.name):
+def checkBonePanel(model_name: str = bpy.context.scene.name) -> None:
 	"""
-	表示パネルに登録されていないボーンをあぶり出します。
+	表示パネルに登録されているボーンを選択することで、未登録のボーンをあぶり出します。
 
-	@param model_name: (str) [任意] MMDモデルに属するオブジェクトの名前
-	@return なし: (なし) この関数に戻り値はありません。
+	@param model_name: (str) [任意] MMD モデルに属するオブジェクトの名前
 	"""
 	bones = bpy.data.objects[selectArmature()].pose.bones
 
@@ -133,12 +135,11 @@ def checkBonePanel(model_name=bpy.context.scene.name):
 	print("現在選択されていないボーンは表示パネルに未登録です。")
 
 
-def setMorphPanel(model_name=bpy.context.scene.name):
+def setMorphPanel(model_name: str = bpy.context.scene.name) -> None:
 	"""
 	表示パネルにモーフを設定します。
 
-	@param model_name: (str) [任意] MMDモデルに属するオブジェクトの名前
-	@return なし: (なし) この関数に戻り値はありません。
+	@param model_name: (str) [任意] MMD モデルに属するオブジェクトの名前
 	"""
 	processed_list = []
 
@@ -146,11 +147,8 @@ def setMorphPanel(model_name=bpy.context.scene.name):
 		processed_list.append(i.name)
 
 	for keycolle in bpy.data.shape_keys:
-		for shape in keycolle.key_blocks:
-			if shape.name == "ベース" or shape.name == "Basis":
-				print("ベースは登録しません! 中断します。")
-				continue
-
+		# 最初のキーブロックはベース (Basis) なので飛ばします。
+		for shape in keycolle.key_blocks[1:]:
 			if shape.name in processed_list:
 				print(shape.name + " はすでに処理済みです! 二重登録を防止するために中断します。")
 				continue
@@ -165,132 +163,123 @@ def setMorphPanel(model_name=bpy.context.scene.name):
 			print("%s を登録しました。" % shape.name)
 
 
-def setEnglishMorphNames(target=bpy.context.scene.name, csv_file="//../CommonMorphList.csv", overwrite=True):
+def setEnglishMorphNames(target: str = bpy.context.scene.name, csv_file: str = "//../CommonMorphList.csv", overwrite: bool = True) -> None:
 	"""
 	英語のモーフ名を設定します。
 
-	@param target: (str) [任意] MMDモデルに属するオブジェクトの名前
+	@param target: (str) [任意] MMD モデルに属するオブジェクトの名前
 	@param csv_file: (str) [任意] 設定に用いる辞書
 	@param overwrite: (bool) [任意] 設定済みの名前を上書きするかどうか
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
 	with open(bpy.path.abspath(csv_file), "r") as f:
-		import csv
 		reader = csv.reader(f)
 
-		for morph in reader:
-			if morph[0] in bpy.data.objects[target].mmd_root.vertex_morphs:
-				m = bpy.data.objects[target].mmd_root.vertex_morphs[morph[0]]
-				if not overwrite and m.name_e != "":
-					print("※%sの設定を飛ばします。" % m.name)
+		for morph_dict in reader:
+			morph_name_ja, morph_name_en = morph_dict
+
+			if morph_name_ja in bpy.data.objects[target].mmd_root.vertex_morphs:
+				morph = bpy.data.objects[target].mmd_root.vertex_morphs[morph_name_ja]
+				if not overwrite and morph.name_e != "":
+					print("※ %s の設定を飛ばします。" % morph.name)
 				else:
-					m.name_e = morph[1]
-					print("%sの英名%sを登録しました。" % (morph[0], morph[1]))
+					morph.name_e = morph_name_en
+					print("%s の英名 %s を登録しました。" % (morph_name_ja, morph_name_en))
 			else:
-				print("%s: このモデルにそのようなモーフはありません。" % morph[0])
+				print("%s: このモデルにそのようなモーフはありません。" % morph_name_ja)
 
 
-def setEnglishRigidNames(overwrite=False):
+def setEnglishRigidNames(overwrite: bool = False) -> None:
 	"""
 	英語の剛体名を設定します。
 
 	@param overwrite: (bool) [任意] 設定済みの名前を上書きするかどうか
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	for rigid in bpy.data.objects:
-		if rigid.mmd_rigid.name_j == "":
+	for obj in bpy.context.scene.objects:
+		if obj.mmd_type != 'RIGID_BODY':
 			continue
-		EnglishName = mmd_tools.translations.translateFromJp(rigid.mmd_rigid.name_j)
-		if EnglishName.replace("_", "").encode('utf-8').isalnum():
-			if not overwrite and rigid.mmd_rigid.name_e != "":
-				print("※%sの設定を飛ばします。" % rigid.mmd_rigid.name_j)
+
+		english_name = mmd_tools.translations.translateFromJp(obj.mmd_rigid.name_j)
+
+		if english_name.replace("_", "").encode('utf-8').isalnum():
+			if not overwrite and obj.mmd_rigid.name_e != "":
+				print("※ %s の設定を飛ばします。" % obj.mmd_rigid.name_j)
 			else:
-				rigid.mmd_rigid.name_e = EnglishName
-				print("%sの英名として%sを登録しました。" % (rigid.mmd_rigid.name_j, EnglishName))
+				obj.mmd_rigid.name_e = english_name
+				print("%s の英名として %s を登録しました。" % (obj.mmd_rigid.name_j, english_name))
 		else:
-			print("!!! %sは残念ながら辞書に登録がありませんでした。飛ばします。" % rigid.mmd_rigid.name_j)
+			print("!!! %s は残念ながら辞書に登録がありませんでした。飛ばします。" % obj.mmd_rigid.name_j)
 			continue
 
 
-def setEnglishJointNames(overwrite=False):
+def setEnglishJointNames(overwrite: bool = False) -> None:
 	"""
 	関節の剛体名を設定します。
 
 	@param overwrite: (bool) [任意] 設定済みの名前を上書きするかどうか
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	for joint in bpy.data.objects:
-		if joint.mmd_joint.name_j == "":
+	for obj in bpy.context.scene.objects:
+		if obj.mmd_type != 'JOINT':
 			continue
 
-		EnglishName = mmd_tools.translations.translateFromJp(joint.mmd_joint.name_j)
+		english_name = mmd_tools.translations.translateFromJp(obj.mmd_joint.name_j)
 
-		if EnglishName.replace("_", "").encode('utf-8').isalnum():
-			if not overwrite and joint.mmd_joint.name_e != "":
-				print("※%sの設定を飛ばします。" % joint.mmd_joint.name_j)
+		if english_name.replace("_", "").encode('utf-8').isalnum():
+			if not overwrite and obj.mmd_joint.name_e != "":
+				print("※ %s の設定を飛ばします。" % obj.mmd_joint.name_j)
 			else:
-				joint.mmd_joint.name_e = EnglishName
-				print("%sの英名として%sを登録しました。" % (joint.mmd_joint.name_j, EnglishName))
+				obj.mmd_joint.name_e = english_name
+				print("%s の英名として %s を登録しました。" % (obj.mmd_joint.name_j, english_name))
 		else:
-			print("!!! %sは残念ながら辞書に登録がありませんでした。飛ばします。" % joint.mmd_joint.name_j)
+			print("!!! %s は残念ながら辞書に登録がありませんでした。飛ばします。" % obj.mmd_joint.name_j)
 			continue
 
 
-def checkPhysicsDuplicationInMMD():
+def checkPhysicsDuplicationInMMD() -> None:
 	"""
 	剛体・関節が重複していないか確認します。
-
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
 	rigids = []
 	joints = []
 
-	for obj in bpy.data.objects:
-		if obj.mmd_joint.name_j != "":
+	for obj in bpy.context.scene.objects:
+		if obj.mmd_type == 'JOINT':
 			joints.append(obj.mmd_joint.name_j)
-		if obj.mmd_rigid.name_j != "":
+
+		if obj.mmd_type == 'RIGID_BODY':
 			rigids.append(obj.mmd_rigid.name_j)
 
-	for lst in joints + rigids:
-		for name1 in lst:
-			counter = 0
-			for name2 in lst:
-				if name1 == name2:
-					counter += 1
-			if counter > 1:
-				print("%sの名称が重複しています! %s" % (lst, name1))
+	physics = rigids + joints
+
+	for name in physics:
+		if physics.count(name) > 2:
+			print("%s の名称が重複しています!" % name)
 
 
-def processTipBonesForMMD():
+def processTipBonesForMMD() -> None:
 	"""
 	先ボーンを設定します。
-
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	Arm = bpy.data.objects[selectArmature()]
+	arm = bpy.data.objects[selectArmature()]
 
-	for bone in Arm.pose.bones:
+	for bone in arm.pose.bones:
 		if bone.mmd_bone.name_j.endswith("先"):
 			bone.mmd_bone.is_tip = True
-			Arm.data.bones[bone.name].hide = True
+			arm.data.bones[bone.name].hide = True
 			print("%sを先ボーンに設定しました。" % bone.name)
 
 
-def toggleNode(spec):
+def toggleNode(spec: bool) -> None:
 	"""
 	マテリアルノードを使用するか否かを設定します。
 	レンダリングエンジンを設定してから呼び出してください。
 
 	@param spec: (bool) [任意] マテリアルノードを使用するか否か
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	BOOL = bpy.context.scene.render.engine == "CYCLES"
+	use_cycles = bpy.context.scene.render.engine == "CYCLES"
 
-	bpy.context.scene.render.use_stamp_memory = BOOL
+	bpy.context.scene.render.use_stamp_memory = use_cycles
 
-	if BOOL:
+	if use_cycles:
 		bpy.context.scene.render.stamp_note_text = bpy.context.scene.render.stamp_note_text.replace("Blender Internal Render", "Cycles Render")
 	else:
 		bpy.context.scene.render.stamp_note_text = bpy.context.scene.render.stamp_note_text.replace("Cycles Render", "Blender Internal Render")
@@ -298,64 +287,59 @@ def toggleNode(spec):
 	for material in bpy.data.materials:
 		if "mmd_tools_rigid_" in material.name:
 			continue
+
 		material.use_nodes = spec
+
 		print("%s のマテリアルノードの使用を %s に設定しました。" % (material.name, spec))
 
 
-def updateOldPoseLib():
+def updateOldPoseLib() -> None:
 	"""
-	2017年以前に使われていたリグで作成されたポーズを更新します。
+	2017 年以前に使われていたリグで作成されたポーズを更新します。
 	廃止予定です。
-
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	for f in bpy.data.actions["PoseLib"].fcurves:
-		if "左" in f.data_path:
-			f.data_path = f.data_path.replace("左", "").replace("\"]", ".L\"]")
-		if "右" in f.data_path:
-			f.data_path = f.data_path.replace("右", "").replace("\"]", ".R\"]")
+	for fcurve in bpy.data.actions["PoseLib"].fcurves:
+		if "左" in fcurve.data_path:
+			fcurve.data_path = fcurve.data_path.replace("左", "").replace("\"]", ".L\"]")
+
+		if "右" in fcurve.data_path:
+			fcurve.data_path = fcurve.data_path.replace("右", "").replace("\"]", ".R\"]")
 
 	print("ポーズの更新作業が完了しました。")
 
 
-def toggleMorphLR():
+def toggleMorphLR() -> None:
 	"""
 	モーフの左右を標準と間違えて作っていた古いモデルを更新します。
 	この関数を実行するとウィンクが壊れます。
 	廃止予定です。
-
-	@param なし: (なし) [なし] この関数に引数はありません。
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
 	for mesh in bpy.data.meshes:
 		if hasattr(mesh.shape_keys, "key_blocks"):
 			for key in mesh.shape_keys.key_blocks.keys():
-				temp = mesh.shape_keys.key_blocks[key]
-				temp.name = temp.name.replace("左", "right")
-				temp.name = temp.name.replace("右", "left")
+				key_block = mesh.shape_keys.key_blocks[key]
+				key_block.name = key_block.name.replace("左", "right")
+				key_block.name = key_block.name.replace("右", "left")
+
 			for key in mesh.shape_keys.key_blocks.keys():
-				temp = mesh.shape_keys.key_blocks[key]
-				temp.name = temp.name.replace("left", "左")
-				temp.name = temp.name.replace("right", "右")
+				key_block = mesh.shape_keys.key_blocks[key]
+				key_block.name = key_block.name.replace("left", "左")
+				key_block.name = key_block.name.replace("right", "右")
+
 	print("モーフの左右入れ替えが完了しました。ウィンクが壊れました。")
 
 
-def selectThisObjOnly(obj_name):
+def selectThisObjOnly(obj_name: str) -> None:
 	"""
 	指定したオブジェクトのみを選択状態にします。
 	止まる場合は、そのオブジェクトが所属するレイヤが表示されているか確認してください。
 
 	@param obj_name: (str) [必須] 選択するオブジェクトの名前
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
 	bpy.ops.object.select_all(action='DESELECT')
+	bpy.data.objects[obj_name].hide = False
 	bpy.data.objects[obj_name].select = True
 	bpy.context.scene.objects.active = bpy.data.objects[obj_name]
-
-	# 不可視状態のオブジェクトは次の操作を失敗させます。
-	if bpy.data.objects[obj_name].hide:
-		bpy.data.objects[obj_name].hide = False
 
 	# 強制オブジェクトモード
 	bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
@@ -363,14 +347,14 @@ def selectThisObjOnly(obj_name):
 	print("%s を選択しました。" % obj_name)
 
 
-def applyShapeAsBasis(obj_name, shape_name, blend=1.0):
+def applyShapeAsBasis(obj_name: str, shape_name: Union[Sequence[str], str], blend: float = 1.0) -> bpy.types.Object:
 	"""
 	指定したモーフを基準状態として登録します。
 
 	@param obj_name: (str) [必須] 編集するオブジェクトの名前
-	@param shape_name: (str) または ([str]) [必須] 適用するシェイプキーの名前
+	@param shape_name: (str | [str]) [必須] 適用するシェイプキーの名前
 	@param blend: (float) [任意] 元の状態に適用するシェイプキーをどのくらい混ぜるか
-	@return active_object: (bpy.data.objects[...]) シェイプキーが適用されたオブジェクト
+	@return: (bpy.types.Object) シェイプキーが適用されたオブジェクト
 	"""
 	selectThisObjOnly(obj_name)
 	bpy.ops.object.duplicate_move() # 退避
@@ -401,13 +385,12 @@ def applyShapeAsBasis(obj_name, shape_name, blend=1.0):
 	return bpy.context.active_object
 
 
-def changeBoneRoll(mode):
+def changeBoneRoll(mode: bool) -> None:
 	"""
 	肩から末端方向へのボーンロールを変更します。
 	廃止予定です。
 
-	@param mode: (bool) [必須] Trueでロールを設定し、ローカル軸でのポージングを簡単にします。Falseでロールを初期化(0に)します。
-	@return なし: (なし) この関数に戻り値はありません。
+	@param mode: (bool) [必須] `True`でロールを設定し、ローカル軸でのポージングを簡単にします。`False`でロールを初期化( 0 に)します。
 	"""
 	# 対象のボーン
 	bones = ("肩", "腕", "腕捩", "ひじ", "手捩", "手首", "親指", "人指", "中指", "薬指", "小指")
@@ -416,19 +399,20 @@ def changeBoneRoll(mode):
 	selectThisObjOnly(selectArmature())
 	bpy.ops.object.posemode_toggle()
 
-	Armature = bpy.data.objects[selectArmature()].data
+	arm = bpy.data.objects[selectArmature()].data
 
 	# ボーンを選ぶ
 	for bone in bones:
 		if "指" in bone:
 			for num in ["０", "１", "２", "３"]:
-				if Armature.bones.find(bone + num + ".L") >= 0:
-					Armature.bones[bone + num + ".L"].select = True
-				if Armature.bones.find(bone + num + ".R") >= 0:
-					Armature.bones[bone + num + ".R"].select = True
+				if arm.bones.find(bone + num + ".L") >= 0:
+					arm.bones[bone + num + ".L"].select = True
+
+				if arm.bones.find(bone + num + ".R") >= 0:
+					arm.bones[bone + num + ".R"].select = True
 		else:
-			Armature.bones[bone + ".L"].select = True
-			Armature.bones[bone + ".R"].select = True
+			arm.bones[bone + ".L"].select = True
+			arm.bones[bone + ".R"].select = True
 
 	# 編集モードに入る
 	bpy.ops.object.editmode_toggle()
@@ -442,17 +426,13 @@ def changeBoneRoll(mode):
 	print("ボーンロールの切り替えが完了しました。")
 
 
-def updateOldAction(action):
+def updateOldAction(action: str) -> None:
 	"""
-	GRiS1を満たさない古いモーションを更新します。
+	GRiS1 を満たさない古いモーションを更新します。
 	廃止予定です。
 
-	@param action: (str) [必須] 更新するモーションの名前。
-	@return なし: (なし) この関数に戻り値はありません。
+	@param action: (str) [必須] 更新するモーションの名前
 	"""
-	from mathutils import Euler
-	from math import pi, radians
-
 	# 変数の準備
 	# bones = ("肩", "腕", "腕捩", "ひじ", "手捩", "手首", "親指", "人指", "中指", "薬指", "小指")
 	bones = ("腕")
@@ -503,12 +483,11 @@ def updateOldAction(action):
 	print("更新が終了しました。必ず結果が正しいか確認を行ってください。")
 
 
-def toggleLegsIK(mode):
+def toggleLegsIK(mode: bool) -> None:
 	"""
-	足IKの有効/無効を切り替えます。
+	足 IK の有効/無効を切り替えます。
 
-	@param mode: (bool) [必須] Trueで足IKを有効に、Falseで無効にします。
-	@return なし: (なし) この関数に戻り値はありません。
+	@param mode: (bool) [必須] `True`で足 IK を有効に、`False`で無効にします。
 	"""
 	bones = ("ひざ.L", "ひざ.R", "足首.L", "足首.R")
 
@@ -518,12 +497,12 @@ def toggleLegsIK(mode):
 	print("足IKの %s への切り替えが完了しました。" % mode)
 
 
-def updatePmxComment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None, copyright_en=None, pname=None, additional_jp=None, additional_en=None):
+def updatePmxComment(mmd_root: mmd_tools.properties.root.MMDRoot, identifier: Union[None, str] = None, mm_ver: Union[None, Sequence[int]] = None, copyright_jp: Union[None, str] = None, copyright_en: Union[None, str] = None, pname: Union[None, str] = None, additional_jp: Union[None, str] = None, additional_en: Union[None, str] = None) -> None:
 	"""
-	PMXファイルに埋め込まれるメタデータを更新します。
-	モジュールを呼び出した Blender ファイルと同じフォルダに changelog が存在している必要があります。
+	PMX ファイルに埋め込まれるメタデータを更新します。
+	モジュールを呼び出した Blender ファイルと同じフォルダに`changelog`が存在している必要があります。
 
-	@param mmd_root: (bpy.data.objects[...].mmd_root) [必須] モデルのルートオブジェクト
+	@param mmd_root: (mmd_tools.properties.root.MMDRoot) [必須] モデルのルート
 	@param identifier: (str) [任意] モデルの changelog 内における識別子(リビジョンの取得に使います)
 	@param mm_ver: ((int)) [任意] Model Manipulator (mm.py) のバージョン
 	@param copyright_jp: (str) [任意] 著作権に関する情報(日本語)
@@ -531,13 +510,7 @@ def updatePmxComment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None, 
 	@param pname: (str) [任意] モデルが属する何らかの大規模プロジェクト
 	@param additional_jp: (str) [任意] 追加情報(日本語)
 	@param additional_en: (str) [任意] 追加情報(英語)
-	@return なし: (なし) この関数に戻り値はありません。
 	"""
-	# pylint 大激怒
-	import sys
-	import platform
-	from datetime import datetime
-
 	# コメントが指定されていない場合は例外を発します。
 	assert mmd_root.comment_text
 	assert mmd_root.comment_e_text
@@ -586,7 +559,7 @@ def updatePmxComment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None, 
 		comment_jp.write("project:\t%s\n" % pname)
 		comment_en.write("project:\t%s\n" % pname)
 
-	def iter2str(iterable, split="."):
+	def iter2str(iterable: Iterable, split: str = ".") -> str:
 		"""
 		iterable を 結合して str に変換します。
 
@@ -594,7 +567,6 @@ def updatePmxComment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None, 
 		@param split: (str) [任意] 区切り文字
 		@return cat: (str) 結合された文字列 ex. 2.79.0
 		"""
-
 		cat = ""
 
 		for i in iterable:
@@ -636,28 +608,27 @@ def updatePmxComment(mmd_root, identifier=None, mm_ver=None, copyright_jp=None, 
 	print("メタデータを更新しました。")
 
 
-def switchLayers(enable=[0]):
+def switchLayers(enable: Sequence[int] = [0]) -> None:
 	"""
 	Switch scene layers.
 
 	@param enable: [optional] ([int]) Layers enabled.
-	@return None: This function doesn't return values.
 	"""
 	layers = bpy.context.scene.layers
+
 	for i in range(len(layers)):
 		layers[i] = i in enable
 
 	print("可視レイヤの切り替えが完了しました。")
 
 
-def multiplyMass(mul, parent):
+def multiplyMass(mul: float, parent: str) -> None:
 	"""
 	物理演算の Blender-MMD 間のつじつまを合わせるために、剛体の質量に定数を乗じます。
 	MMD は初期状態で Blender の10倍の重力加速度が設定されているようです。
 
 	@param mul: (float) [必須] 質量の倍数
-	@param parent: (str) [必須] 剛体の親。通常、rigidbodiesです。
-	@return なし: (なし) この関数は戻り値がありません。
+	@param parent: (str) [必須] 剛体の親。通常、`rigidbodies`です。
 	"""
 	for obj in bpy.data.objects[parent].children:
 		obj.rigid_body.mass *= mul
@@ -665,19 +636,18 @@ def multiplyMass(mul, parent):
 	print("剛体の質量を %f 倍しました。" % mul)
 
 
-def toggleSubsurf(mode, target=None, mod_type=('SUBSURF')):
+def toggleSubsurf(mode: bool, target: Union[None, Sequence[bpy.types.Modifier]] = None, mod_type: Sequence[str] = ('SUBSURF')) -> Sequence[bpy.types.Modifier]:
 	"""
 	細分割曲面モディファイアおよび他のモディファイアの有効・無効を切り替えます。
 
 	@param mode: (bool) [必須]
-		有効にするか(True) 無効にするか(False)
-	@param target: ([bpy.data.objects[...].modifiers[...]]) [任意]
-		対象とするモディファイアのリスト
-		未指定だとすべてのオブジェクトに設定されたモディファイアを対象とします。
-		mod_type は無視されます。
+		有効にするか(`True`) 無効にするか(`False`)
+	@param target: ([bpy.types.Modifier) [任意]
+		対象とするモディファイアのリストです。指定した場合、`mod_type`は無視されます。
+		未指定の場合、すべてのオブジェクトに設定された`mod_type`に該当するモディファイアを対象とします。
 	@param mod_type: ((str)) [任意]
 		切り替えるモディファイアのタイプ
-	@return toggled: ([bpy.data.objects[...].modifiers[...]])
+	@return toggled: ([bpy.types.Modifier])
 		切り替えたモディファイアのリスト
 	"""
 	toggled = []
@@ -700,14 +670,14 @@ def toggleSubsurf(mode, target=None, mod_type=('SUBSURF')):
 	return toggled
 
 
-def deleteVertexGroup(object_name, group_name):
+def deleteVertexGroup(object_name: str, group_name: Sequence[str]) -> bpy.types.Object:
 	"""
 	指定されたオブジェクトの指定された頂点グループに属する頂点を削除します。
 	軽量版の生成に用いられます。
 
 	@param object_name (str): [必須] 対象とするオブジェクト
 	@param group_name ([str]): [必須] 削除する頂点グループ名のリスト
-	@return obj (bpy.data.objects[...]): 指定の頂点が削除されたオブジェクト
+	@return obj (bpy.types.Object): 指定の頂点が削除されたオブジェクト
 	"""
 	selectThisObjOnly(object_name)
 
