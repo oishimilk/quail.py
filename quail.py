@@ -75,13 +75,13 @@ def setEnglishBoneNames(overwrite: bool = False) -> None:
 		english_name = mmd_tools.translations.translateFromJp(bone.mmd_bone.name_j)
 
 		if not(english_name.replace("_", "").encode('utf-8').isalnum()):
-			print("※%sは残念ながら辞書に登録がありませんでした。飛ばします。" % bone.name)
+			print("※ %s は残念ながら辞書に登録がありませんでした。飛ばします。" % bone.name)
 		else:
 			if bone.mmd_bone.name_e != "" and not(overwrite):
-				print("※%sの設定を飛ばします。" % bone.name)
+				print("※ %s の設定を飛ばします。" % bone.name)
 			else:
 				bone.mmd_bone.name_e = english_name
-				print("%sの英名として%sを登録しました。" % (bone.name, english_name))
+				print("%s の英名として %s を登録しました。" % (bone.name, english_name))
 
 
 def showBoneIdentifier() -> None:
@@ -653,7 +653,7 @@ def toggleSubsurf(mode: bool, target: Union[None, Sequence[bpy.types.Modifier]] 
 	toggled = []
 
 	if target is None:
-		for obj in bpy.context.scene.objects:
+		for obj in bpy.data.objects:
 			for mod in obj.modifiers:
 				if mod.type in mod_type:
 					if mod.show_viewport != mode:
