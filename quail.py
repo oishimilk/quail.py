@@ -540,15 +540,13 @@ def toggle_subsurf(mode: bool, target: Union[None, Sequence[bpy.types.Modifier]]
 					if mod.show_viewport != mode:
 						mod.show_viewport = mode
 						toggled.append(mod)
-
-		print("モディファイア %s を %s にしました。" % (mod_type, mode))
 	else:
 		for mod in target:
 			if mod.show_viewport != mode:
 				mod.show_viewport = mode
 				toggled.append(mod)
 
-		print("モディファイア %s を %s にしました。" % (target, mode))
+	print("モディファイア %s を %s にしました。" % (toggled, mode))
 
 	return toggled
 
