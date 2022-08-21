@@ -665,7 +665,7 @@ def toggleSubsurf(mode: bool, target: Union[None, Sequence[bpy.types.Modifier]] 
 				mod.show_viewport = mode
 				toggled.append(mod)
 
-	print("モディファイア %s を %s にしました。" % (mod_type, mode))
+	print("モディファイア %s を %s にしました。" % (toggled, mode))
 
 	return toggled
 
