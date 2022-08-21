@@ -311,9 +311,9 @@ def select_this_obj_only(obj: bpy.types.Object) -> None:
 	@param obj: (bpy.types.Object) [必須] 選択するオブジェクト
 	"""
 	bpy.ops.object.select_all(action='DESELECT')
-	obj.hide = False
-	obj.select = True
-	bpy.context.active_object = obj
+	obj.hide_viewport = False
+	obj.select_set(True)
+	bpy.context.view_layer.objects.active = obj
 
 	# 強制オブジェクトモード
 	bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
@@ -540,13 +540,15 @@ def toggle_subsurf(mode: bool, target: Union[None, Sequence[bpy.types.Modifier]]
 					if mod.show_viewport != mode:
 						mod.show_viewport = mode
 						toggled.append(mod)
+
+		print("モディファイア %s を %s にしました。" % (mod_type, mode))
 	else:
 		for mod in target:
 			if mod.show_viewport != mode:
 				mod.show_viewport = mode
 				toggled.append(mod)
 
-	print("モディファイア %s を %s にしました。" % (mod_type, mode))
+		print("モディファイア %s を %s にしました。" % (target, mode))
 
 	return toggled
 
