@@ -153,9 +153,9 @@ def check_bone_panel(root_obj: Union[None, bpy.types.Object] = None) -> None:
 			raise RuntimeError("Armature が見つかりませんでした。")
 
 	for frame in root_obj.mmd_root.display_item_frames:
-		for item in frame.items:
-			if item.name in bones:
-				bones[item.name].bone.select = True
+		for data in frame.data:
+			if data.name in bones:
+				bones[data.name].bone.select = True
 
 	print("現在選択されていないボーンは表示パネルに未登録です。")
 
