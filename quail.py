@@ -166,28 +166,25 @@ def set_morph_panel(root_obj: Union[None, bpy.types.Object] = None) -> None:
 
 	@param root_obj: (None | bpy.types.Object) [任意] MMD モデルのルート
 	"""
-	processed_list = []
-
 	if root_obj is None:
 		root_obj = _select_root()
-
-	for i in root_obj.mmd_root.display_item_frames['表情'].items:
-		processed_list.append(i.name)
 
 	for keycolle in bpy.data.shape_keys:
 		# 最初のキーブロックはベース (Basis) なので飛ばします。
 		for shape in keycolle.key_blocks[1:]:
-			if shape.name in processed_list:
-				print(shape.name + " はすでに処理済みです! 二重登録を防止するために中断します。")
+			if shape.name in root_obj.mmd_root.display_item_frames['表情'].data:
 				continue
 
-			temp = root_obj.mmd_root.display_item_frames['表情'].items.add()
+			temp = root_obj.mmd_root.display_item_frames['表情'].data.add()
 			temp.type = 'MORPH'
 			temp.name = shape.name
+
+			if shape.name in root_obj.mmd_root.vertex_morphs:
+				continue
+
 			temp = root_obj.mmd_root.vertex_morphs.add()
 			temp.name = shape.name
 
-			processed_list.append(shape.name)
 			print("%s を登録しました。" % shape.name)
 
 
