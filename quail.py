@@ -15,7 +15,7 @@ import bpy
 import mmd_tools
 
 # バージョン
-VERSION = (0, 2, 0)
+VERSION = (0, 2, 1)
 
 
 def _select_armature() -> bpy.types.Object:
@@ -307,6 +307,9 @@ def select_this_obj_only(obj: bpy.types.Object) -> None:
 
 	@param obj: (bpy.types.Object) [必須] 選択するオブジェクト
 	"""
+	if not isinstance(obj, bpy.types.Object):
+		raise TypeError(obj)
+
 	bpy.ops.object.select_all(action='DESELECT')
 	obj.hide_viewport = False
 	obj.select_set(True)
