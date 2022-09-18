@@ -15,7 +15,7 @@ import bpy
 import mmd_tools
 
 # バージョン
-VERSION = (0, 2, 1)
+VERSION = (0, 2, 2)
 
 
 def _select_armature() -> bpy.types.Object:
@@ -53,7 +53,6 @@ def set_japanese_bone_names() -> None:
 	Blender 用ボーン名を使って MMD 用日本語ボーン名を割り当てます。
 	`mmd_tools`側にもすでに同様の機能がありますが、`excluded`ボーンのみ個別対応が必要なため残しています。
 	"""
-	# 以下のボーンは処理されません。
 	excluded = ("上半身2補助.L", "上半身2補助.R", "腰キャンセル.L", "腰キャンセル.R", "下半身補助.L", "下半身補助.R")
 
 	for bone in _select_armature().pose.bones:
@@ -61,8 +60,12 @@ def set_japanese_bone_names() -> None:
 			continue
 
 		if bone.name in excluded:
-			print(bone.name + " (MMD名: %s) の処理を飛ばします" % bone.mmd_bone.name_j)
-			continue
+			if ".L" in bone.name:
+				bone.mmd_bone.name_j = bone.name.replace(".L", "左")
+			elif ".R" in bone.name:
+				bone.mmd_bone.name_j = bone.name.replace(".R", "右")
+			else:
+				bone.mmd_bone.name_j = bone.name
 
 		if ".L" in bone.name:
 			bone.mmd_bone.name_j = "左" + bone.name.replace(".L", "")
