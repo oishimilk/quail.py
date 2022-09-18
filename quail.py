@@ -2,7 +2,7 @@
 Blender で MMD モデルを作るお手伝いをします。
 Copyright (C) 2017-2022 Quail (oishimilk). Some rights reserved.
 
-Compatible with Blender 3.2.2 and mmd_tools v2.4.0
+Compatible with Blender 3.2.2 and MMD Tools v2.4.0
 """
 import csv
 import sys
@@ -50,10 +50,8 @@ def _select_root() -> bpy.types.Object:
 
 def set_japanese_bone_names() -> None:
 	"""
-	Blender用ボーン名を使ってMMD用日本語ボーン名を割り当てます。
-
-	- `mmd_tools`側にもすでに同様の機能があるので廃止予定です。
-	- `excluded`ボーンのみ個別対応が必要なため残しています。
+	Blender 用ボーン名を使って MMD 用日本語ボーン名を割り当てます。
+	`mmd_tools`側にもすでに同様の機能がありますが、`excluded`ボーンのみ個別対応が必要なため残しています。
 	"""
 	# 以下のボーンは処理されません。
 	excluded = ("上半身2補助.L", "上半身2補助.R", "腰キャンセル.L", "腰キャンセル.R", "下半身補助.L", "下半身補助.R")
@@ -78,7 +76,7 @@ def set_japanese_bone_names() -> None:
 
 def set_english_bone_names(overwrite: bool = False) -> None:
 	"""
-	MMD用日本語ボーン名を翻訳してMMD用英語ボーン名を割り当てます。
+	MMD 用日本語ボーン名を翻訳して MMD 用英語ボーン名を割り当てます。
 	先に`set_japanese_bone_names()`を実行してください。
 	`mmd_tools`側にもすでに同様の機能があるので廃止予定です。
 
