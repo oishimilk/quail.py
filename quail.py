@@ -15,7 +15,7 @@ import bpy
 import mmd_tools
 
 # バージョン
-VERSION = (0, 2, 2)
+VERSION = (0, 2, 3)
 
 
 def _select_armature() -> bpy.types.Object:
@@ -374,7 +374,7 @@ def toggle_legs_ik(mode: bool) -> None:
 	print("足 IK の %s への切り替えが完了しました。" % mode)
 
 
-def update_pmx_comment(mmd_root: mmd_tools.properties.MMDRoot, identifier: Union[str, None] = None, mm_ver: Union[Sequence[int], None] = None, copyright_jp: Union[str, None] = None, copyright_en: Union[str, None] = None, pname: Union[str, None] = None, additional_jp: Union[str, None] = None, additional_en: Union[str, None] = None) -> None:
+def update_pmx_comment(mmd_root: mmd_tools.properties.root.MMDRoot, identifier: Union[str, None] = None, mm_ver: Union[Sequence[int], None] = None, copyright_jp: Union[str, None] = None, copyright_en: Union[str, None] = None, pname: Union[str, None] = None, additional_jp: Union[str, None] = None, additional_en: Union[str, None] = None) -> None:
 	"""
 	PMX ファイルに埋め込まれるメタデータを更新します。
 	モジュールを呼び出した Blender ファイルと同じフォルダに`changelog`が存在している必要があります。
